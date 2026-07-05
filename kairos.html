@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Webcam</title>
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<h1>Painel de Monitoramento</h1>
+
+<div class="container-cameras">
+    <div class="bloco" onclick="expandir(this)">
+        <h2>Câmera 1</h2>
+        <button class="voltar" onclick="voltar(event, this)">⬅ Voltar</button>
+        <video id="camera1" autoplay playsinline></video>
+    </div>
+    <div class="bloco" onclick="expandir(this)">
+        <h2>Câmera 2</h2>
+        <button class="voltar" onclick="voltar(event, this)">⬅ Voltar</button>
+        <video id="camera2" autoplay playsinline></video>
+    </div>
+    <div class="bloco" onclick="expandir(this)">
+        <h2>Câmera 3</h2>
+        <button class="voltar" onclick="voltar(event, this)">⬅ Voltar</button>
+        <video id="camera3" autoplay playsinline></video>
+    </div>
+    <div class="bloco" onclick="expandir(this)">
+        <h2>Câmera 4</h2>
+        <button class="voltar" onclick="voltar(event, this)">⬅ Voltar</button>
+        <video id="camera4" autoplay playsinline></video>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
