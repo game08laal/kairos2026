@@ -15,11 +15,19 @@
 <div class="container-cameras">
     <div class="bloco" onclick="expandir(this)">
         <div class="topo-bloco">
+
             <h2>🔬 Vista Superior</h2>
             <div id="status1" class="status inicializando">Inicializando</div>
         </div>
         <button class="voltar" onclick="voltar(event, this)">⬅ Voltar</button>
+       
         <video id="camera1" autoplay playsinline></video>
+        
+        <button class="capturar" onclick="capturarImagem(1)">
+     Capturar Amostra
+</button>
+<img id="foto1" class="foto-capturada">
+        
         <div id="captura1" class="rodape-bloco">Última captura: Aguardando...</div>
     </div>
 
@@ -30,6 +38,10 @@
         </div>
         <button class="voltar" onclick="voltar(event, this)">⬅ Voltar</button>
         <video id="camera2" autoplay playsinline></video>
+        <button class="capturar" onclick="capturarImagem(2)">
+     Capturar Amostra
+</button>
+<img id="foto2" class="foto-capturada">
         <div id="captura2" class="rodape-bloco">Última captura: Aguardando...</div>
     </div>
 
@@ -40,6 +52,10 @@
         </div>
         <button class="voltar" onclick="voltar(event, this)">⬅ Voltar</button>
         <video id="camera3" autoplay playsinline></video>
+          <button class="capturar" onclick="capturarImagem(3)">
+     Capturar Amostra
+</button>
+<img id="foto3" class="foto-capturada">
         <div id="captura3" class="rodape-bloco">Última captura: Aguardando...</div>
     </div>
 
@@ -50,6 +66,10 @@
         </div>
         <button class="voltar" onclick="voltar(event, this)">⬅ Voltar</button>
         <video id="camera4" autoplay playsinline></video>
+          <button class="capturar" onclick="capturarImagem(4)">
+     Capturar Amostra
+</button>
+<img id="foto4" class="foto-capturada">
         <div id="captura4" class="rodape-bloco">Última captura: Aguardando...</div>
     </div>
 </div>
