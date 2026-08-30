@@ -100,7 +100,6 @@ async function inicializarIA() {
         maxPredictions = model.getTotalClasses();
         console.log("IA Carregada com Sucesso!");
         
-        // Começa a analisar os frames da Câmera 1 (Vista Superior)
         loopIA();
     } catch (e) {
         console.error("Erro ao carregar o modelo de IA:", e);
@@ -113,6 +112,8 @@ let contadoresVazio = { 1: 0, 2: 0, 3: 0, 4: 0 };
 let estadoAtualDetectado = { 1: false, 2: false, 3: false, 4: false };
 
 async function loopIA() {
+    if (!model) return;
+
     for (let numeroBloco = 1; numeroBloco <= 4; numeroBloco++) {
         const videoElement = document.getElementById(`camera${numeroBloco}`);
         
@@ -132,7 +133,6 @@ async function prever(video, numeroBloco) {
         const nomeClasse = prediction[i].className;
         const probabilidade = prediction[i].probability;
 
-        // Subimos a confiança para 90% para ficar ainda mais rigoroso
         if (nomeClasse === "Bactéria" && probabilidade > 0.90) {
             veBactériaAgora = true;
         }
@@ -141,61 +141,106 @@ async function prever(video, numeroBloco) {
     // Lógica do Filtro de Estabilidade (Debounce)
     if (veBactériaAgora) {
         contadoresBacteria[numeroBloco]++;
-        contadoresVazio[numeroBloco] = 0; // zera o contador de fundo vazio
+        contadoresVazio[numeroBloco] = 0;
 
-        // Se a IA viu a bactéria por 5 frames seguidos, confirma a detecção
         if (contadoresBacteria[numeroBloco] >= 5) {
             estadoAtualDetectado[numeroBloco] = true;
         }
     } else {
         contadoresVazio[numeroBloco]++;
-        contadoresBacteria[numeroBloco] = 0; // zera o contador de bactéria
+        contadoresBacteria[numeroBloco] = 0;
 
-        // Se a IA viu o fundo limpo por 5 frames seguidos, confirma que saiu
         if (contadoresVazio[numeroBloco] >= 5) {
             estadoAtualDetectado[numeroBloco] = false;
         }
     }
 
-    // Configuração dos nomes das telas
     const nomesCameras = {
-        1: " Vista Superior",
-        2: " Lateral Esquerda",
-        3: " Lateral Direita",
-        4: " Macro"
+        1: "Vista Superior",
+        2: "Lateral Esquerda",
+        3: "Lateral Direita",
+        4: "Macro"
     };
     const nomeAtual = nomesCameras[numeroBloco] || `Câmera ${numeroBloco}`;
 
-    // Atualiza a tela apenas se o estado estiver travado/estabilizado
     if (estadoAtualDetectado[numeroBloco]) {
-        atualizarStatus(numeroBloco, 'online', `${nomeAtual} - Bactéria!`);
+        atualizarStatus(numeroBloco, 'online status-bacteria', `${nomeAtual} - Bactéria!`);
         document.getElementById(`captura${numeroBloco}`).innerText = `Última captura: ${obterHoraAtual()}`;
     } else {
         atualizarStatus(numeroBloco, 'online', 'Online');
     }
 }
 
-function expandir(bloco) {
-    // Só expande se já não estiver expandido
-    if (!bloco.classList.contains("expandido")) {
-        bloco.classList.add("expandido");
+// ==========================================
+// CONTROLES DE CAPTURA E TELA CHEIA (TOGGLE)
+// ==========================================
+
+function capturarImagemManualmente(numeroBloco) {
+    const video = document.getElementById(`camera${numeroBloco}`);
+    const imgFoto = document.getElementById(`foto${numeroBloco}`);
+    
+    if (!video || !streams[numeroBloco]) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataURL = canvas.toDataURL('image/png');
+    imgFoto.src = dataURL;
+    imgFoto.style.display = 'block';
+
+    document.getElementById(`captura${numeroBloco}`).innerText = `Última captura: ${obterHoraAtual()}`;
+}
+
+// Alterna entre expandir e restaurar o bloco (Estilo YouTube)
+function alternarExpandirCamera(numeroBloco) {
+    const bloco = document.getElementById(`bloco${numeroBloco}`);
+    const btn = document.getElementById(`btn-expandir-${numeroBloco}`);
+    
+    if (!bloco || !btn) return;
+
+    const jaEstaExpandido = bloco.classList.contains('expandido');
+
+    if (jaEstaExpandido) {
+        bloco.classList.remove('expandido');
+        document.body.classList.remove('em-tela-cheia');
+        btn.innerText = '⛶'; // Ícone de expandir
+    } else {
+        // Garante que nenhum outro bloco fique preso em modo expandido
+        document.querySelectorAll('.bloco').forEach(b => b.classList.remove('expandido'));
+        
+        // Reseta o ícone de todos os outros botões para '⛶'
+        for (let i = 1; i <= 4; i++) {
+            const b = document.getElementById(`btn-expandir-${i}`);
+            if (b) b.innerText = '⛶';
+        }
+
+        bloco.classList.add('expandido');
+        document.body.classList.add('em-tela-cheia');
+        btn.innerText = '🗗'; // Ícone de restaurar/reduzir
     }
 }
 
-function voltar(event, botao) {
-    event.stopPropagation(); // MUITO IMPORTANTE: impede que o clique de fechar clique em "expandir" de novo
-    botao.parentElement.classList.remove("expandido");
-}
-
+// Atalho da tecla ESC para restaurar a tela e os ícones dos botões
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         const expandido = document.querySelector('.expandido');
-        if (expandido) expandido.classList.remove('expandido');
+        if (expandido) {
+            expandido.classList.remove('expandido');
+            document.body.classList.remove('em-tela-cheia');
+            for (let i = 1; i <= 4; i++) {
+                const btn = document.getElementById(`btn-expandir-${i}`);
+                if (btn) btn.innerText = '⛶';
+            }
+        }
     }
 });
 
-
+// Inicialização do sistema
 window.onload = async () => {
     await listarEComecarCameras();
-    setTimeout(inicializarIA, 3000); 
+    await inicializarIA();
 };
