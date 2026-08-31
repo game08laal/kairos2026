@@ -1,60 +1,55 @@
-// Link da IA gerado pelo Teachable Machine
-const URL_MODELO = "https://teachablemachine.withgoogle.com/models/5ac2tL3-X/";
-
 let streams = {};
 let cameras = [];
-let model, maxPredictions;
 
-// Função auxiliar para atualizar o visual do status
 function atualizarStatus(numero, tipo, texto) {
     const elStatus = document.getElementById(`status${numero}`);
     if (elStatus) {
-        elStatus.className = `status ${tipo}`; // online, offline, inicializando
+        elStatus.className = `status ${tipo}`;
         elStatus.innerText = texto;
     }
 }
 
-// Função auxiliar para pegar a hora atual formatada (HH:MM:SS)
 function obterHoraAtual() {
     const agora = new Date();
     return agora.toTimeString().split(' ')[0];
 }
 
-// Inicia as câmeras assim que a página abre
 async function listarEComecarCameras() {
     try {
-        const streamTeste = await navigator.mediaDevices.getUserMedia({ video: true });
-        streamTeste.getTracks().forEach(track => track.stop());
+        // Pede permissão inicial
+        const streamInicial = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        streamInicial.getTracks().forEach(track => track.stop());
 
+        // Mapeia todas as câmeras conectadas
         const dispositivos = await navigator.mediaDevices.enumerateDevices();
         const camerasEncontradas = dispositivos.filter(device => device.kind === "videoinput");
-        
-        // Evita duplicidade de IDs devido ao HUB USB
+
+        // Remove duplicados de ID
         cameras = camerasEncontradas.filter((cam, index, self) =>
             index === self.findIndex((c) => c.deviceId === cam.deviceId)
         );
 
-        console.log("Câmeras físicas encontradas:", cameras.length);
+        console.log(`Total de câmeras encontradas: ${cameras.length}`);
 
-        // Marca como offline blocos sem câmera física conectada
+        // Atualiza blocos que não possuem câmera conectada
         for (let i = 1; i <= 4; i++) {
             if (i > cameras.length) {
-                atualizarStatus(i, 'offline', 'Offline');
+                atualizarStatus(i, 'offline', 'Sem Câmera');
                 document.getElementById(`captura${i}`).innerText = "Última captura: --:--:--";
             }
         }
 
-        // Liga as câmeras com uma pequena pausa de segurança entre elas
-        for (let i = 0; i < cameras.length; i++) {
+        // Liga cada câmera encontrada com intervalo para não sobrecarregar a USB
+        for (let i = 0; i < cameras.length && i < 4; i++) {
             const numeroBloco = i + 1;
-            if (numeroBloco <= 4) {
-                await ligarCameraPorIndice(numeroBloco, i);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
+            await ligarCameraPorIndice(numeroBloco, i);
+            // Pausa de 1.2 segundos entre a abertura de cada câmera
+            await new Promise(resolve => setTimeout(resolve, 1200));
         }
 
     } catch (erro) {
-        alert("Erro ao iniciar o sistema: " + erro);
+        console.error("Erro ao listar dispositivos:", erro);
+        atualizarStatus(1, 'offline', 'Erro de Acesso');
     }
 }
 
@@ -63,117 +58,94 @@ async function ligarCameraPorIndice(numeroBloco, indiceCamera) {
     if (!video || !cameras[indiceCamera]) return;
 
     try {
-        atualizarStatus(numeroBloco, 'inicializando', 'Inicializando');
+        atualizarStatus(numeroBloco, 'inicializando', 'Inicializando...');
 
-        const stream = await navigator.mediaDevices.getUserMedia({
+        // Força resolução baixa (320x240) para não estourar a banda da USB com 3+ câmeras
+        const constraints = {
             video: {
                 deviceId: { exact: cameras[indiceCamera].deviceId },
-                width: { ideal: 640 },
-                height: { ideal: 480 }
+                width: { ideal: 320 },
+                height: { ideal: 240 },
+                frameRate: { max: 15 }
             },
             audio: false
-        });
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
         streams[numeroBloco] = stream;
         video.srcObject = stream;
-        
-        atualizarStatus(numeroBloco, 'online', 'Online');
+        await video.play();
+
+        const nomes = { 1: "Vista Superior", 2: "Lateral Esquerda", 3: "Lateral Direita", 4: "Macro" };
+        atualizarStatus(numeroBloco, 'online', `${nomes[numeroBloco]} - Online`);
         document.getElementById(`captura${numeroBloco}`).innerText = `Última captura: ${obterHoraAtual()}`;
 
     } catch (erro) {
-        console.error(`Erro no bloco ${numeroBloco}:`, erro);
-        atualizarStatus(numeroBloco, 'offline', 'Offline');
+        console.error(`Erro na câmera do Bloco ${numeroBloco}:`, erro);
+        atualizarStatus(numeroBloco, 'offline', 'Falha USB/Ocupada');
     }
 }
 
-// ==========================================
-// INTEGRANDO A INTELIGÊNCIA ARTIFICIAL (IA)
-// ==========================================
+// Integrando o Python YOLOv8
+let iaEmExecucao = false;
 
-async function inicializarIA() {
-    const modelURL = URL_MODELO + "model.json";
-    const metadataURL = URL_MODELO + "metadata.json";
-
-    try {
-        console.log("Carregando Inteligência Artificial...");
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-        console.log("IA Carregada com Sucesso!");
-        
-        loopIA();
-    } catch (e) {
-        console.error("Erro ao carregar o modelo de IA:", e);
-    }
+function inicializarIA() {
+    setInterval(loopAnalisePython, 500);
 }
 
-// Criamos contadores para cada uma das 4 câmeras guardarem o histórico de estabilidade
-let contadoresBacteria = { 1: 0, 2: 0, 3: 0, 4: 0 };
-let contadoresVazio = { 1: 0, 2: 0, 3: 0, 4: 0 };
-let estadoAtualDetectado = { 1: false, 2: false, 3: false, 4: false };
+async function loopAnalisePython() {
+    if (iaEmExecucao) return;
+    iaEmExecucao = true;
 
-async function loopIA() {
-    if (!model) return;
-
-    for (let numeroBloco = 1; numeroBloco <= 4; numeroBloco++) {
-        const videoElement = document.getElementById(`camera${numeroBloco}`);
-        
-        if (videoElement && videoElement.readyState === 4 && streams[numeroBloco]) {
-            await prever(videoElement, numeroBloco);
+    for (let i = 1; i <= 4; i++) {
+        const video = document.getElementById(`camera${i}`);
+        if (video && video.readyState === 4 && streams[i]) {
+            await enviarQuadroParaIA(video, i);
         }
     }
-    window.requestAnimationFrame(loopIA);
+
+    iaEmExecucao = false;
 }
 
-async function prever(video, numeroBloco) {
-    const prediction = await model.predict(video);
-    
-    let veBactériaAgora = false;
+async function enviarQuadroParaIA(videoElement, numeroBloco) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 320; 
+    canvas.height = 240;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
-    for (let i = 0; i < maxPredictions; i++) {
-        const nomeClasse = prediction[i].className;
-        const probabilidade = prediction[i].probability;
+    canvas.toBlob(async (blob) => {
+        if (!blob) return;
 
-        if (nomeClasse === "Bactéria" && probabilidade > 0.90) {
-            veBactériaAgora = true;
+        const formData = new FormData();
+        formData.append('file', blob, 'frame.jpg');
+
+        try {
+            const resposta = await fetch('http://127.0.0.1:8000/analisar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const dados = await resposta.json();
+            const nomesCameras = { 1: "Vista Superior", 2: "Lateral Esquerda", 3: "Lateral Direita", 4: "Macro" };
+            const nomeAtual = nomesCameras[numeroBloco] || `Câmera ${numeroBloco}`;
+
+            if (dados.sucesso && dados.deteccoes && dados.deteccoes.length > 0) {
+                const detec = dados.deteccoes[0];
+                atualizarStatus(
+                    numeroBloco, 
+                    'online status-bacteria', 
+                    `${nomeAtual} - ${detec.classe.toUpperCase()} (${detec.confianca}%)`
+                );
+            } else {
+                atualizarStatus(numeroBloco, 'online', `${nomeAtual} - Online`);
+            }
+        } catch (err) {
+            // Ignora falhas pontuais de conexão com o servidor
         }
-    }
-
-    // Lógica do Filtro de Estabilidade (Debounce)
-    if (veBactériaAgora) {
-        contadoresBacteria[numeroBloco]++;
-        contadoresVazio[numeroBloco] = 0;
-
-        if (contadoresBacteria[numeroBloco] >= 5) {
-            estadoAtualDetectado[numeroBloco] = true;
-        }
-    } else {
-        contadoresVazio[numeroBloco]++;
-        contadoresBacteria[numeroBloco] = 0;
-
-        if (contadoresVazio[numeroBloco] >= 5) {
-            estadoAtualDetectado[numeroBloco] = false;
-        }
-    }
-
-    const nomesCameras = {
-        1: "Vista Superior",
-        2: "Lateral Esquerda",
-        3: "Lateral Direita",
-        4: "Macro"
-    };
-    const nomeAtual = nomesCameras[numeroBloco] || `Câmera ${numeroBloco}`;
-
-    if (estadoAtualDetectado[numeroBloco]) {
-        atualizarStatus(numeroBloco, 'online status-bacteria', `${nomeAtual} - Bactéria!`);
-        document.getElementById(`captura${numeroBloco}`).innerText = `Última captura: ${obterHoraAtual()}`;
-    } else {
-        atualizarStatus(numeroBloco, 'online', 'Online');
-    }
+    }, 'image/jpeg', 0.7);
 }
-
-// ==========================================
-// CONTROLES DE CAPTURA E TELA CHEIA (TOGGLE)
-// ==========================================
 
 function capturarImagemManualmente(numeroBloco) {
     const video = document.getElementById(`camera${numeroBloco}`);
@@ -188,14 +160,11 @@ function capturarImagemManualmente(numeroBloco) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const dataURL = canvas.toDataURL('image/png');
-    imgFoto.src = dataURL;
+    imgFoto.src = canvas.toDataURL('image/png');
     imgFoto.style.display = 'block';
-
     document.getElementById(`captura${numeroBloco}`).innerText = `Última captura: ${obterHoraAtual()}`;
 }
 
-// Alterna entre expandir e restaurar o bloco (Estilo YouTube)
 function alternarExpandirCamera(numeroBloco) {
     const bloco = document.getElementById(`bloco${numeroBloco}`);
     const btn = document.getElementById(`btn-expandir-${numeroBloco}`);
@@ -207,24 +176,19 @@ function alternarExpandirCamera(numeroBloco) {
     if (jaEstaExpandido) {
         bloco.classList.remove('expandido');
         document.body.classList.remove('em-tela-cheia');
-        btn.innerText = '⛶'; // Ícone de expandir
+        btn.innerText = '⛶';
     } else {
-        // Garante que nenhum outro bloco fique preso em modo expandido
         document.querySelectorAll('.bloco').forEach(b => b.classList.remove('expandido'));
-        
-        // Reseta o ícone de todos os outros botões para '⛶'
         for (let i = 1; i <= 4; i++) {
             const b = document.getElementById(`btn-expandir-${i}`);
             if (b) b.innerText = '⛶';
         }
-
         bloco.classList.add('expandido');
         document.body.classList.add('em-tela-cheia');
-        btn.innerText = '🗗'; // Ícone de restaurar/reduzir
+        btn.innerText = '🗗';
     }
 }
 
-// Atalho da tecla ESC para restaurar a tela e os ícones dos botões
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         const expandido = document.querySelector('.expandido');
@@ -239,8 +203,7 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Inicialização do sistema
 window.onload = async () => {
     await listarEComecarCameras();
-    await inicializarIA();
+    inicializarIA();
 };
