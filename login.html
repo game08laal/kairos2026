@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAIRÓS - Login</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+
+<main class="container">
+    <section class="login-box">
+
+        <img src="assets/logo.png" alt="Logo KAIRÓS" class="logo">
+
+        <h1>KAIRÓS</h1>
+
+        <p class="descricao">Monitoramento Laboratorial</p>
+
+        <p class="identificacao">ACESSO RESTRITO • CENTRAL DE CÂMERAS</p>
+
+        <form id="form-login">
+
+            <div class="campo">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Digite seu email institucional" required autocomplete="email">
+            </div>
+
+            <div class="campo">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" placeholder="Digite sua senha" required autocomplete="current-password">
+            </div>
+
+            <div id="erro-login" class="erro-login"></div>
+
+            <button type="submit" id="btn-entrar">Entrar</button>
+
+        </form>
+
+    </section>
+</main>
+
+<script src="js/login.js"></script>
+</body>
+</html>

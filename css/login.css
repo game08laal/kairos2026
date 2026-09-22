@@ -1,0 +1,165 @@
+/* =====================================================
+   KAIRÓS - LOGIN (Monitoramento Laboratorial)
+   ===================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #0D47A1;
+    --text-dark: #1d3557;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f3f7fa;
+}
+
+.container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    box-sizing: border-box;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 430px;
+    background: #ffffff;
+    border: 1px solid #d9e2e8;
+    border-radius: 8px;
+    padding: 42px 40px;
+    box-sizing: border-box;
+    box-shadow: 0 8px 25px rgba(31, 55, 72, 0.08);
+}
+
+.logo {
+    width: 125px;
+    display: block;
+    margin: 0 auto 18px;
+}
+
+h1 {
+    margin: 0;
+    text-align: center;
+    color: #16384d;
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.descricao {
+    margin: 8px 0 8px;
+    text-align: center;
+    color: #5f7180;
+    font-size: 0.95rem;
+}
+
+.identificacao {
+    margin: 0 0 30px;
+    text-align: center;
+    color: #7b8b96;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+}
+
+.campo {
+    margin-bottom: 20px;
+}
+
+.campo label {
+    display: block;
+    margin-bottom: 7px;
+    color: #304957;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.campo input {
+    width: 100%;
+    height: 46px;
+    padding: 0 13px;
+    box-sizing: border-box;
+    border: 1px solid #cbd7df;
+    border-radius: 5px;
+    background: #fbfcfd;
+    color: #263b48;
+    font-family: inherit;
+    font-size: 0.92rem;
+    transition: 0.2s;
+}
+
+.campo input::placeholder {
+    color: #9aa8b1;
+}
+
+.campo input:focus {
+    outline: none;
+    border-color: #397fa6;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(57, 127, 166, 0.10);
+}
+
+button[type="submit"] {
+    width: 100%;
+    height: 46px;
+    margin-top: 5px;
+    border: none;
+    border-radius: 5px;
+    background: #286783;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button[type="submit"]:hover {
+    background: #20566d;
+}
+
+button[type="submit"]:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.erro-login {
+    color: #c0392b;
+    font-size: 0.85rem;
+    margin: -8px 0 16px;
+    min-height: 1em;
+    text-align: center;
+}
+
+@media (max-width: 520px) {
+    .container {
+        padding: 20px;
+    }
+
+    .login-box {
+        padding: 32px 25px;
+    }
+
+    .logo {
+        width: 105px;
+    }
+
+    h1 {
+        font-size: 1.7rem;
+    }
+}

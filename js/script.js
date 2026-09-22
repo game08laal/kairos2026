@@ -1,5 +1,12 @@
 let streams = {};
-let cameras = [];
+
+// Associação fixa: cada bloco sempre usa a câmera com esse nome
+const MAPEAMENTO_CAMERAS = {
+    1: "Logi C270 HD WebCam",  // Vista Superior
+    2: "UVC Camera",            // Lateral Esquerda
+    3: "GENERAL - UVC",         // Lateral Direita
+    4: "ST301"                   // Macro (microscópio)
+};
 
 function atualizarStatus(numero, tipo, texto) {
     const elStatus = document.getElementById(`status${numero}`);
@@ -24,25 +31,20 @@ async function listarEComecarCameras() {
         const dispositivos = await navigator.mediaDevices.enumerateDevices();
         const camerasEncontradas = dispositivos.filter(device => device.kind === "videoinput");
 
-        // Remove duplicados de ID
-        cameras = camerasEncontradas.filter((cam, index, self) =>
-            index === self.findIndex((c) => c.deviceId === cam.deviceId)
-        );
+        console.log(`Total de câmeras encontradas: ${camerasEncontradas.length}`);
 
-        console.log(`Total de câmeras encontradas: ${cameras.length}`);
+        // Para cada bloco, procura a câmera pelo nome esperado
+        for (let numeroBloco = 1; numeroBloco <= 4; numeroBloco++) {
+            const nomeEsperado = MAPEAMENTO_CAMERAS[numeroBloco];
+            const camera = camerasEncontradas.find(cam => cam.label.includes(nomeEsperado));
 
-        // Atualiza blocos que não possuem câmera conectada
-        for (let i = 1; i <= 4; i++) {
-            if (i > cameras.length) {
-                atualizarStatus(i, 'offline', 'Sem Câmera');
-                document.getElementById(`captura${i}`).innerText = "Última captura: --:--:--";
+            if (!camera) {
+                atualizarStatus(numeroBloco, 'offline', 'Sem Câmera');
+                document.getElementById(`captura${numeroBloco}`).innerText = "Última captura: --:--:--";
+                continue;
             }
-        }
 
-        // Liga cada câmera encontrada com intervalo para não sobrecarregar a USB
-        for (let i = 0; i < cameras.length && i < 4; i++) {
-            const numeroBloco = i + 1;
-            await ligarCameraPorIndice(numeroBloco, i);
+            await ligarCamera(numeroBloco, camera.deviceId);
             // Pausa de 1.2 segundos entre a abertura de cada câmera
             await new Promise(resolve => setTimeout(resolve, 1200));
         }
@@ -53,9 +55,9 @@ async function listarEComecarCameras() {
     }
 }
 
-async function ligarCameraPorIndice(numeroBloco, indiceCamera) {
+async function ligarCamera(numeroBloco, deviceId) {
     const video = document.getElementById(`camera${numeroBloco}`);
-    if (!video || !cameras[indiceCamera]) return;
+    if (!video) return;
 
     try {
         atualizarStatus(numeroBloco, 'inicializando', 'Inicializando...');
@@ -63,7 +65,7 @@ async function ligarCameraPorIndice(numeroBloco, indiceCamera) {
         // Força resolução baixa (320x240) para não estourar a banda da USB com 3+ câmeras
         const constraints = {
             video: {
-                deviceId: { exact: cameras[indiceCamera].deviceId },
+                deviceId: { exact: deviceId },
                 width: { ideal: 320 },
                 height: { ideal: 240 },
                 frameRate: { max: 15 }
