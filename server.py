@@ -15,7 +15,8 @@ from insightface.app import FaceAnalysis
 # ============================================================
 
 URL_BIOMETRIAS_KAIROS = "https://sitekairos.onrender.com/api/cameras/biometrias"
-
+CACHE_BIOMETRIAS = []
+CACHE_BIOMETRIAS_CARREGADO = False
 
 def buscar_biometrias_kairos():
     chave_api = os.getenv("CAMERA_API_KEY")
@@ -103,7 +104,16 @@ app_face.prepare(
 @app.get("/teste-biometrias")
 def teste_biometrias():
     try:
-        usuarios = buscar_biometrias_kairos()
+        global CACHE_BIOMETRIAS
+        global CACHE_BIOMETRIAS_CARREGADO
+
+        if not CACHE_BIOMETRIAS_CARREGADO:
+            print("BUSCANDO BIOMETRIAS DO KAIRÓS...")
+            CACHE_BIOMETRIAS = buscar_biometrias_kairos()
+            CACHE_BIOMETRIAS_CARREGADO = True
+            print(f"{len(CACHE_BIOMETRIAS)} BIOMETRIAS CARREGADAS.")
+
+        usuarios = CACHE_BIOMETRIAS
 
         return {
             "sucesso": True,

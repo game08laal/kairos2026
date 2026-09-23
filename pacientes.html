@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>KAIRÓS - Seleção de Paciente</title>
+
+    <link rel="stylesheet" href="css/pacientes.css">
+</head>
+
+<body>
+
+    <main class="pagina-pacientes">
+
+        <header class="cabecalho">
+
+            <img
+                src="assets/logo.png"
+                alt="Logo KAIRÓS"
+                class="logo">
+
+            <div>
+                <h1>Seleção do paciente</h1>
+                <p>Escolha o paciente que será analisado</p>
+            </div>
+
+        </header>
+
+
+        <section class="informacoes-operador">
+
+            <span>OPERADOR IDENTIFICADO</span>
+
+            <strong id="nome-operador">
+                Carregando...
+            </strong>
+
+        </section>
+
+
+        <section class="area-pacientes">
+
+            <h2>Pacientes cadastrados</h2>
+
+            <p class="descricao">
+                Selecione um paciente para iniciar uma nova análise.
+            </p>
+
+            <div id="lista-pacientes" class="lista-pacientes">
+                <!-- Os pacientes serão colocados aqui pelo JavaScript -->
+            </div>
+
+        </section>
+
+
+        <div
+            id="mensagem"
+            class="mensagem">
+        </div>
+
+
+        <footer>
+            Sistema de Monitoramento Laboratorial • KAIRÓS
+        </footer>
+
+    </main>
+
+
+    <script src="js/pacientes.js"></script>
+
+</body>
+
+</html>

@@ -89,26 +89,36 @@
         
         <div class="modal-body">
             <div class="filtros-operador">
-                <label>Operador Atual: </label>
-                <input type="text" id="nome-operador" value="Farmacêutico Responsável" onchange="salvarOperador()">
-                <button onclick="limparBancoDados()" class="btn-danger">Limpar Banco (Manutenção)</button>
+                <div class="grupo-input-header">
+                    <label>Paciente: </label>
+                    <input type="text" id="nome-paciente" placeholder="Ex: João da Silva" onchange="salvarPaciente()">
+                </div>
+                <div class="grupo-input-header">
+                    <label>Operador: </label>
+                    <input type="text" id="nome-operador" value="Farmacêutico Responsável" onchange="salvarOperador()">
+                </div>
+                <div class="info-auto-delete">
+                    <span>⏱️ Limpeza Automática: <strong>Fotos expiram em 7 min</strong></span>
+                </div>
             </div>
 
-            <table id="tabela-amostras">
-                <thead>
-                    <tr>
-                        <th>Foto</th>
-                        <th>Data/Hora</th>
-                        <th>Câmera</th>
-                        <th>Código / Bactéria</th>
-                        <th>Confiança IA</th>
-                        <th>Cor / Viscosidade</th>
-                        <th>Operador</th>
-                    </tr>
-                </thead>
-                <tbody id="corpo-tabela-amostras">
-                </tbody>
-            </table>
+            <div class="tabela-container">
+                <table id="tabela-amostras">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Horário / Data</th>
+                            <th>Paciente</th>
+                            <th>Câmera</th>
+                            <th>Detecção / Análise</th>
+                            <th>Confiabilidade IA</th>
+                            <th>Farmacêutico / Operador</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpo-tabela-amostras">
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

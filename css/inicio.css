@@ -1,0 +1,242 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f4f8fb;
+    color: #18323f;
+    min-height: 100vh;
+}
+
+.tela-inicial {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ==============================
+   CABEÇALHO
+   ============================== */
+
+.cabecalho-inicial {
+    height: 95px;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid #dce7ec;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 55px;
+
+    gap: 18px;
+}
+
+.logo {
+    width: 60px;
+    height: 60px;
+
+    object-fit: contain;
+}
+
+.identificacao-sistema h1 {
+    font-size: 23px;
+    font-weight: 600;
+
+    color: #173744;
+}
+
+.identificacao-sistema p {
+    margin-top: 4px;
+
+    font-size: 14px;
+
+    color: #6d858f;
+}
+
+
+/* ==============================
+   CONTEÚDO PRINCIPAL
+   ============================== */
+
+.conteudo-inicial {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+
+    padding: 40px 20px;
+}
+
+
+/* ÍCONE CENTRAL */
+
+.icone-sistema {
+    width: 72px;
+    height: 72px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 22px;
+
+    border-radius: 50%;
+
+    background: #eaf3f6;
+
+    border: 1px solid #d5e5ea;
+}
+
+.icone-sistema span {
+    font-size: 30px;
+
+    color: #1d687d;
+}
+
+
+/* STATUS */
+
+.status-sistema {
+    font-size: 12px;
+
+    font-weight: 600;
+
+    letter-spacing: 1.5px;
+
+    color: #398069;
+
+    margin-bottom: 15px;
+}
+
+
+/* TÍTULO */
+
+.conteudo-inicial h2 {
+    font-size: 32px;
+
+    font-weight: 600;
+
+    color: #173744;
+
+    margin-bottom: 12px;
+}
+
+
+/* DESCRIÇÃO */
+
+.descricao {
+    max-width: 500px;
+
+    font-size: 16px;
+
+    line-height: 1.6;
+
+    color: #718891;
+
+    margin-bottom: 32px;
+}
+
+
+/* ==============================
+   BOTÃO
+   ============================== */
+
+.btn-identificar {
+    min-width: 260px;
+
+    padding: 16px 30px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #1d687d;
+
+    color: #ffffff;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    letter-spacing: 0.3px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.btn-identificar:hover {
+    background: #155365;
+
+    transform: translateY(-2px);
+
+    box-shadow: 0 7px 18px rgba(29, 104, 125, 0.20);
+}
+
+.btn-identificar:active {
+    transform: translateY(0);
+}
+
+
+/* ==============================
+   RODAPÉ
+   ============================== */
+
+.rodape-inicial {
+    padding: 20px;
+
+    display: flex;
+    justify-content: center;
+    gap: 9px;
+
+    font-size: 12px;
+
+    color: #7b9199;
+}
+
+
+/* ==============================
+   RESPONSIVO
+   ============================== */
+
+@media (max-width: 700px) {
+
+    .cabecalho-inicial {
+        padding: 0 20px;
+    }
+
+    .identificacao-sistema h1 {
+        font-size: 19px;
+    }
+
+    .identificacao-sistema p {
+        font-size: 12px;
+    }
+
+    .conteudo-inicial h2 {
+        font-size: 25px;
+    }
+
+    .descricao {
+        font-size: 14px;
+    }
+
+    .btn-identificar {
+        width: 90%;
+        max-width: 300px;
+    }
+}

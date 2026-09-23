@@ -1,0 +1,270 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f4f8fb;
+    color: #18323f;
+    min-height: 100vh;
+}
+
+.tela-reconhecimento {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* CABEÇALHO */
+
+.cabecalho {
+    height: 90px;
+    background: #ffffff;
+    border-bottom: 1px solid #dce7ec;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 50px;
+    gap: 18px;
+}
+
+.cabecalho img {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+}
+
+.cabecalho h1 {
+    font-size: 23px;
+    font-weight: 600;
+    color: #173744;
+}
+
+.cabecalho p {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #6d858f;
+}
+
+/* CARTÃO PRINCIPAL */
+
+.cartao-reconhecimento {
+    width: min(850px, 92%);
+    margin: 45px auto 30px;
+
+    background: #ffffff;
+    border: 1px solid #dce7ec;
+    border-radius: 18px;
+
+    padding: 35px 45px 40px;
+
+    box-shadow: 0 8px 30px rgba(25, 65, 80, 0.08);
+
+    text-align: center;
+}
+
+/* TÍTULO */
+
+.titulo-area {
+    margin-bottom: 25px;
+}
+
+.titulo-area h2 {
+    font-size: 25px;
+    font-weight: 600;
+    color: #173744;
+}
+
+.titulo-area p {
+    margin-top: 8px;
+    color: #718891;
+    font-size: 15px;
+}
+
+/* ÁREA DA CÂMERA */
+
+.camera-area {
+    position: relative;
+
+    width: 100%;
+    max-width: 650px;
+    height: 390px;
+
+    margin: 0 auto;
+
+    background: #102b36;
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.camera-area video {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    transform: scaleX(-1);
+}
+
+/* MOLDURA DO ROSTO */
+
+.moldura-rosto {
+    position: absolute;
+
+    width: 220px;
+    height: 280px;
+
+    border: 3px solid rgba(255, 255, 255, 0.9);
+
+    border-radius: 48% 48% 45% 45%;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    pointer-events: none;
+
+    box-shadow:
+        0 0 0 9999px rgba(0, 0, 0, 0.18);
+}
+
+/* STATUS */
+
+.status {
+    margin: 22px auto 0;
+
+    width: fit-content;
+    max-width: 90%;
+
+    padding: 10px 18px;
+
+    border-radius: 20px;
+
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.status.aguardando {
+    background: #edf5f8;
+    color: #397184;
+}
+
+.status.sucesso {
+    background: #e8f6ee;
+    color: #28734b;
+}
+
+.status.erro {
+    background: #fbeaea;
+    color: #a33a3a;
+}
+
+/* OPERADOR RECONHECIDO */
+
+.operador {
+    margin: 18px auto 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    padding: 15px 25px;
+
+    width: fit-content;
+
+    background: #f1f7f9;
+
+    border-radius: 12px;
+}
+
+.operador span {
+    font-size: 12px;
+    color: #6d858f;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.operador strong {
+    font-size: 19px;
+    color: #173744;
+}
+
+/* BOTÃO */
+
+.btn-continuar {
+    margin-top: 22px;
+
+    border: none;
+    border-radius: 10px;
+
+    padding: 13px 35px;
+
+    background: #1d687d;
+    color: white;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+.btn-continuar:hover {
+    background: #155365;
+    transform: translateY(-1px);
+}
+
+/* ESCONDIDO */
+
+.oculto {
+    display: none !important;
+}
+
+/* RODAPÉ */
+
+footer {
+    margin-top: auto;
+
+    padding: 20px;
+
+    text-align: center;
+
+    font-size: 12px;
+    color: #7b9199;
+}
+
+/* RESPONSIVO */
+
+@media (max-width: 700px) {
+
+    .cabecalho {
+        padding: 0 20px;
+    }
+
+    .cabecalho h1 {
+        font-size: 18px;
+    }
+
+    .cartao-reconhecimento {
+        padding: 25px 20px 30px;
+    }
+
+    .camera-area {
+        height: 300px;
+    }
+
+    .moldura-rosto {
+        width: 170px;
+        height: 220px;
+    }
+}

@@ -1,0 +1,129 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: #f5f8fa;
+    color: #17252f;
+}
+
+.pagina-pacientes {
+    width: min(950px, 100%);
+    min-height: 100vh;
+    margin: auto;
+    padding: 35px 25px;
+}
+
+.cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 30px;
+}
+
+.logo {
+    width: 65px;
+    height: 65px;
+    object-fit: contain;
+}
+
+.cabecalho h1 {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.cabecalho p {
+    margin-top: 5px;
+    color: #74818a;
+}
+
+.informacoes-operador {
+    background: white;
+    border-left: 4px solid #1f8f55;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 35px;
+    box-shadow: 0 5px 20px rgba(20, 50, 65, 0.07);
+}
+
+.informacoes-operador span {
+    display: block;
+    font-size: 12px;
+    color: #7b878e;
+    margin-bottom: 5px;
+}
+
+.informacoes-operador strong {
+    font-size: 19px;
+}
+
+.area-pacientes {
+    background: white;
+    border-radius: 18px;
+    padding: 30px;
+    box-shadow: 0 8px 30px rgba(20, 50, 65, 0.08);
+}
+
+.area-pacientes h2 {
+    font-size: 22px;
+    margin-bottom: 7px;
+}
+
+.descricao {
+    color: #7b878e;
+    margin-bottom: 25px;
+}
+
+.lista-pacientes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.paciente {
+    width: 100%;
+    border: 1px solid #dfe6ea;
+    background: #fafcfd;
+    border-radius: 13px;
+    padding: 18px 20px;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.paciente:hover {
+    border-color: #1f8f55;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(20, 50, 65, 0.08);
+}
+
+.paciente-nome {
+    display: block;
+    font-size: 17px;
+    font-weight: 600;
+    color: #17252f;
+}
+
+.paciente-exame {
+    display: block;
+    margin-top: 6px;
+    color: #6e7b83;
+    font-size: 14px;
+}
+
+.mensagem {
+    margin-top: 20px;
+    text-align: center;
+    color: #c93636;
+}
+
+footer {
+    text-align: center;
+    margin-top: 30px;
+    color: #9aa4aa;
+    font-size: 13px;
+}
