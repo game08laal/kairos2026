@@ -1,3 +1,27 @@
+let sessaoYuNet = null;
+let sessaoSFace = null;
+
+async function carregarModelosFaciais() {
+    try {
+        console.log("Carregando modelos faciais...");
+
+        sessaoYuNet = await ort.InferenceSession.create(
+            "/modelos_faciais/face_detection_yunet_2026may.onnx"
+        );
+
+        sessaoSFace = await ort.InferenceSession.create(
+            "/modelos_faciais/face_recognition_sface_2021dec_int8.onnx"
+        );
+
+        console.log("MODELOS FACIAIS PRONTOS");
+        console.log("YuNet:", sessaoYuNet.inputNames, sessaoYuNet.outputNames);
+        console.log("SFace:", sessaoSFace.inputNames, sessaoSFace.outputNames);
+
+    } catch (erro) {
+        console.error("ERRO AO CARREGAR MODELOS FACIAIS:", erro);
+    }
+}
+
 let streams = {};
 
 // Associação fixa: cada bloco sempre usa a câmera com esse nome
@@ -206,6 +230,7 @@ document.addEventListener('keydown', function(e) {
 });
 
 window.onload = async () => {
+    await carregarModelosFaciais();
     await listarEComecarCameras();
     inicializarIA();
 };
