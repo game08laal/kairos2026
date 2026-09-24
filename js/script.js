@@ -672,7 +672,37 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-window.onload = async () => {
+// ============================================================
+// INICIALIZAÇÃO VIA TELA DE ENTRADA (LANDING SCREEN)
+// ============================================================
+
+async function iniciarSistemaKairos() {
+    const btnIniciar = document.getElementById('btn-iniciar-sistema');
+    const loader = document.getElementById('landing-status-loader');
+    const landingScreen = document.getElementById('landing-screen');
+
+    if (btnIniciar) btnIniciar.style.display = 'none';
+    if (loader) loader.classList.remove('modal-oculta');
+
+    try {
+        await carregarModelosFaciais();
+        await listarEComecarCameras();
+        inicializarIA();
+        iniciarCapturaAutomaticaEmLote();
+
+        if (landingScreen) {
+            landingScreen.classList.add('fade-out');
+            setTimeout(() => {
+                landingScreen.style.display = 'none';
+            }, 800);
+        }
+    } catch (erro) {
+        console.error("Erro durante a inicialização do sistema KAIROS:", erro);
+        if (loader) loader.innerText = "Erro ao conectar aos componentes. Verifique as permissões de vídeo.";
+    }
+}
+
+window.onload = () => {
     const opSalvo = sessionStorage.getItem('operador');
     if (opSalvo) {
         const inputOp = document.getElementById('nome-operador');
@@ -684,9 +714,4 @@ window.onload = async () => {
         const inputPac = document.getElementById('nome-paciente');
         if (inputPac) inputPac.value = pacSalvo;
     }
-
-    await carregarModelosFaciais();
-    await listarEComecarCameras();
-    inicializarIA();
-    iniciarCapturaAutomaticaEmLote();
 };

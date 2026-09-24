@@ -8,6 +8,24 @@
 </head>
 <body>
 
+<!-- TELA INICIAL / LANDING SCREEN (KAIROS) -->
+<div id="landing-screen">
+    <div class="landing-card">
+        <div class="landing-logo">KAIROS</div>
+        <h1 class="landing-title">Sistema de Monitoramento Laboratorial</h1>
+        <p class="landing-subtitle">Tecnologia e precisão para análise segura de amostras</p>
+        
+        <button id="btn-iniciar-sistema" class="btn-iniciar" onclick="iniciarSistemaKairos()">
+            <span>Iniciar Sistema</span>
+        </button>
+        
+        <div id="landing-status-loader" class="landing-loader modal-oculta">
+            <div class="spinner"></div>
+            <span>Inicializando módulos e câmeras...</span>
+        </div>
+    </div>
+</div>
+
 <h1>
     Painel de Monitoramento Laboratorial - KAIROS
     <button id="btn-menu" class="btn-topo" onclick="abrirModalHistorico()">⋮ Histórico & Banco</button>

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 
+import cv2
 import io
 import os
 import requests
@@ -14,7 +15,11 @@ from insightface.app import FaceAnalysis
 # CONFIGURAÇÃO DA API DO KAIRÓS
 # ============================================================
 
+
 URL_BIOMETRIAS_KAIROS = "https://sitekairos.onrender.com/api/cameras/biometrias"
+URL_AUTENTICACAO_FACIAL_KAIROS = (
+    "https://sitekairos.onrender.com/api/cameras/autenticacao-facial"
+)
 CACHE_BIOMETRIAS = []
 CACHE_BIOMETRIAS_CARREGADO = False
 
@@ -26,9 +31,9 @@ def buscar_biometrias_kairos():
             "CAMERA_API_KEY não está configurada."
         )
 
-    resposta = requests.get(
-        URL_BIOMETRIAS_KAIROS,
-        headers={
+    resposta = requests.post(
+    URL_AUTENTICACAO_FACIAL_KAIROS,
+    headers={
             "x-camera-api-key": chave_api
         },
         timeout=15
@@ -40,7 +45,29 @@ def buscar_biometrias_kairos():
 
     return dados.get("usuarios", [])
 
+def enviar_embedding_para_kairos(embedding):
+    chave_api = os.getenv("CAMERA_API_KEY")
 
+    if not chave_api:
+        raise RuntimeError(
+            "CAMERA_API_KEY não está configurada."
+        )
+
+    resposta = requests.post(
+        URL_AUTENTICACAO_FACIAL_KAIROS,
+        headers={
+            "x-camera-api-key": chave_api,
+            "Content-Type": "application/json"
+        },
+        json={
+            "biometria": embedding
+        },
+        timeout=15
+    )
+
+    resposta.raise_for_status()
+
+    return resposta.json()
 # ============================================================
 # BANCO FACIAL LOCAL
 # ============================================================
@@ -263,7 +290,67 @@ async def analisar_imagem(
             "sucesso": False,
             "erro": str(e)
         }
+@app.post("/teste-autenticacao-sofia")
+async def teste_autenticacao_sofia(
+    file: UploadFile = File(...)
+):
+    try:
+        # Recebe a imagem enviada
+        conteudo = await file.read()
 
+        imagem = Image.open(
+            io.BytesIO(conteudo)
+        ).convert("RGB")
+
+        img_np = np.array(imagem)
+
+        # Detecta o rosto e gera o embedding
+        faces = app_face.get(img_np)
+
+        if not faces:
+            return {
+                "sucesso": False,
+                "erro": "Nenhum rosto detectado na imagem."
+            }
+
+        # Primeiro rosto encontrado
+        embedding_real = faces[0].embedding
+
+        # Normaliza o vetor
+        embedding_real = (
+            embedding_real /
+            np.linalg.norm(embedding_real)
+        )
+
+        # Converte para lista para enviar em JSON
+        embedding_lista = (
+            embedding_real
+            .astype(float)
+            .tolist()
+        )
+
+        print(
+            "Embedding gerado:",
+            len(embedding_lista),
+            "dimensões"
+        )
+
+        # Envia para a API da Sofia
+        resultado = enviar_embedding_para_kairos(
+            embedding_lista
+        )
+
+        return {
+            "sucesso": True,
+            "embedding_dimensoes": len(embedding_lista),
+            "resultado_sofia": resultado
+        }
+
+    except Exception as e:
+        return {
+            "sucesso": False,
+            "erro": str(e)
+        }
 
 # ============================================================
 # RECONHECIMENTO FACIAL KAIRÓS - SFACE 128D
