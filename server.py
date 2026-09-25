@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, Body
+from fastapi import FastAPI, UploadFile, File, Form, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 import cv2
@@ -15,7 +15,6 @@ from insightface.app import FaceAnalysis
 # CONFIGURAÇÃO DA API DO KAIRÓS
 # ============================================================
 
-
 URL_BIOMETRIAS_KAIROS = "https://sitekairos.onrender.com/api/cameras/biometrias"
 URL_AUTENTICACAO_FACIAL_KAIROS = (
     "https://sitekairos.onrender.com/api/cameras/autenticacao-facial"
@@ -23,35 +22,49 @@ URL_AUTENTICACAO_FACIAL_KAIROS = (
 CACHE_BIOMETRIAS = []
 CACHE_BIOMETRIAS_CARREGADO = False
 
+
 def buscar_biometrias_kairos():
     chave_api = os.getenv("CAMERA_API_KEY")
 
     if not chave_api:
-        raise RuntimeError(
-            "CAMERA_API_KEY não está configurada."
+        print("AVISO: CAMERA_API_KEY não está configurada nas variáveis de ambiente.")
+        return []
+
+    try:
+        headers = {"x-camera-api-key": chave_api}
+
+        # Tenta buscar as biometrias no endpoint principal
+        resposta = requests.get(
+            URL_BIOMETRIAS_KAIROS,
+            headers=headers,
+            timeout=10
         )
 
-    resposta = requests.post(
-    URL_AUTENTICACAO_FACIAL_KAIROS,
-    headers={
-            "x-camera-api-key": chave_api
-        },
-        timeout=15
-    )
+        if not resposta.ok:
+            # Fallback para o endpoint secundário se necessário
+            resposta = requests.post(
+                URL_AUTENTICACAO_FACIAL_KAIROS,
+                headers=headers,
+                timeout=10
+            )
 
-    resposta.raise_for_status()
+        resposta.raise_for_status()
+        dados = resposta.json()
 
-    dados = resposta.json()
+        if isinstance(dados, list):
+            return dados
+        return dados.get("usuarios", dados.get("biometrias", []))
 
-    return dados.get("usuarios", [])
+    except Exception as e:
+        print(f"ERRO AO BUSCAR BIOMETRIAS DO KAIRÓS: {e}")
+        return []
+
 
 def enviar_embedding_para_kairos(embedding):
     chave_api = os.getenv("CAMERA_API_KEY")
 
     if not chave_api:
-        raise RuntimeError(
-            "CAMERA_API_KEY não está configurada."
-        )
+        raise RuntimeError("CAMERA_API_KEY não está configurada.")
 
     resposta = requests.post(
         URL_AUTENTICACAO_FACIAL_KAIROS,
@@ -66,8 +79,9 @@ def enviar_embedding_para_kairos(embedding):
     )
 
     resposta.raise_for_status()
-
     return resposta.json()
+
+
 # ============================================================
 # BANCO FACIAL LOCAL
 # ============================================================
@@ -93,7 +107,10 @@ def salvar_banco():
 # FASTAPI
 # ============================================================
 
-app = FastAPI()
+app = FastAPI(
+    title="Servidor de Reconhecimento Facial Kairós",
+    version="1.0"
+)
 
 
 # Configuração de CORS para permitir acesso do front-end
@@ -140,19 +157,10 @@ def teste_biometrias():
             CACHE_BIOMETRIAS_CARREGADO = True
             print(f"{len(CACHE_BIOMETRIAS)} BIOMETRIAS CARREGADAS.")
 
-        usuarios = CACHE_BIOMETRIAS
-
         return {
             "sucesso": True,
-            "quantidade": len(usuarios),
-            "usuarios": [
-                {
-                    "id": usuario.get("id"),
-                    "nome": usuario.get("nome"),
-                    "dimensoes": len(usuario.get("biometria", []))
-                }
-                for usuario in usuarios
-            ]
+            "total_carregados": len(CACHE_BIOMETRIAS),
+            "biometrias": CACHE_BIOMETRIAS
         }
 
     except Exception as e:
@@ -193,11 +201,9 @@ async def cadastrar_rosto(
                 "erro": "Nenhum rosto detectado na imagem."
             }
 
-        # Armazena o vetor de características
-        # da primeira face detectada
+        # Armazena o vetor de características da primeira face
         BANCO_FACIAL[nome] = faces[0].embedding
 
-        # Salva a alteração no arquivo banco_faces.npy
         salvar_banco()
 
         return {
@@ -246,7 +252,6 @@ async def analisar_imagem(
             maior_similaridade = 0.0
 
             # Comparação vetorial via Cosseno
-            # contra as pessoas cadastradas
             for nome_cadastrado, emb_cadastrado in BANCO_FACIAL.items():
 
                 sim = np.dot(
@@ -261,13 +266,11 @@ async def analisar_imagem(
                     maior_similaridade = sim
                     melhor_nome = nome_cadastrado
 
-            # Converte similaridade para porcentagem
             confianca_percentual = round(
                 float(maior_similaridade) * 100,
                 2
             )
 
-            # Limiar mínimo de similaridade
             if maior_similaridade < 0.40:
                 melhor_nome = "Desconhecido"
 
@@ -290,12 +293,13 @@ async def analisar_imagem(
             "sucesso": False,
             "erro": str(e)
         }
+
+
 @app.post("/teste-autenticacao-sofia")
 async def teste_autenticacao_sofia(
     file: UploadFile = File(...)
 ):
     try:
-        # Recebe a imagem enviada
         conteudo = await file.read()
 
         imagem = Image.open(
@@ -304,7 +308,6 @@ async def teste_autenticacao_sofia(
 
         img_np = np.array(imagem)
 
-        # Detecta o rosto e gera o embedding
         faces = app_face.get(img_np)
 
         if not faces:
@@ -313,29 +316,19 @@ async def teste_autenticacao_sofia(
                 "erro": "Nenhum rosto detectado na imagem."
             }
 
-        # Primeiro rosto encontrado
         embedding_real = faces[0].embedding
 
-        # Normaliza o vetor
         embedding_real = (
             embedding_real /
             np.linalg.norm(embedding_real)
         )
 
-        # Converte para lista para enviar em JSON
         embedding_lista = (
             embedding_real
             .astype(float)
             .tolist()
         )
 
-        print(
-            "Embedding gerado:",
-            len(embedding_lista),
-            "dimensões"
-        )
-
-        # Envia para a API da Sofia
         resultado = enviar_embedding_para_kairos(
             embedding_lista
         )
@@ -352,114 +345,227 @@ async def teste_autenticacao_sofia(
             "erro": str(e)
         }
 
+
 # ============================================================
 # RECONHECIMENTO FACIAL KAIRÓS - SFACE 128D
 # ============================================================
 
 @app.post("/reconhecer")
-def reconhecer_rosto(dados: dict = Body(...)):
+def reconhecer_farmaceutico(dados: dict):
+    """
+    Recebe o embedding SFace 128D do front-end
+    e envia para o backend oficial do KAIRÓS.
+    """
+
     try:
-        embedding_recebido = dados.get("embedding")
+        embedding_recebido = dados.get("embedding", [])
 
         if not isinstance(embedding_recebido, list):
             return {
                 "sucesso": False,
+                "reconhecido": False,
                 "erro": "Embedding inválido."
             }
 
         if len(embedding_recebido) != 128:
             return {
                 "sucesso": False,
-                "erro": "O embedding deve possuir 128 dimensões."
+                "reconhecido": False,
+                "erro": (
+                    f"Embedding inválido: "
+                    f"{len(embedding_recebido)} dimensões. "
+                    "Esperado: 128."
+                )
             }
 
-        embedding_atual = np.array(
-            embedding_recebido,
-            dtype=np.float32
+        print(
+            "[RECONHECIMENTO] Enviando embedding "
+            "128D para o KAIRÓS..."
         )
 
-        norma_atual = np.linalg.norm(embedding_atual)
+        resposta_sofia = enviar_embedding_para_kairos(
+            embedding_recebido
+        )
 
-        if norma_atual == 0:
+        print(
+            "[RECONHECIMENTO] Resposta recebida "
+            "do KAIRÓS."
+        )
+
+        if (
+            resposta_sofia.get("autenticado")
+            or resposta_sofia.get("reconhecido")
+        ):
+            usuario_info = resposta_sofia.get(
+                "usuario",
+                {}
+            )
+
+            token = resposta_sofia.get("token")
+
+            print(
+                "[RECONHECIMENTO] Usuário autenticado:",
+                usuario_info.get("id"),
+                usuario_info.get("nome")
+            )
+
+            print(
+                "[RECONHECIMENTO] JWT recebido:",
+                "SIM" if token else "NÃO"
+            )
+
             return {
-                "sucesso": False,
-                "erro": "Embedding inválido."
+                "sucesso": True,
+                "reconhecido": True,
+                "usuario": {
+                    "id": usuario_info.get("id"),
+                    "nome": usuario_info.get("nome"),
+                    "email": usuario_info.get("email"),
+                    "cargo": usuario_info.get("cargo")
+                },
+                "similaridade": resposta_sofia.get(
+                    "similaridade"
+                ),
+                "maiorSimilaridade": resposta_sofia.get(
+                    "similaridade"
+                ),
+                "token": token
             }
 
-        embedding_atual = embedding_atual / norma_atual
-
-        usuarios = buscar_biometrias_kairos()
-
-        melhor_usuario = None
-        maior_similaridade = -1.0
-
-        for usuario in usuarios:
-
-            biometria = usuario.get("biometria", [])
-
-            if not isinstance(biometria, list):
-                continue
-
-            if len(biometria) != 128:
-                continue
-
-            embedding_banco = np.array(
-                biometria,
-                dtype=np.float32
-            )
-
-            norma_banco = np.linalg.norm(embedding_banco)
-
-            if norma_banco == 0:
-                continue
-
-            embedding_banco = (
-                embedding_banco / norma_banco
-            )
-
-            similaridade = float(
-                np.dot(
-                    embedding_atual,
-                    embedding_banco
-                )
-            )
-
-            if similaridade > maior_similaridade:
-                maior_similaridade = similaridade
-                melhor_usuario = usuario
-
-        # Limiar inicial.
-        # Depois calibraremos com testes reais das câmeras.
-        LIMIAR_RECONHECIMENTO = 0.55
-
-        reconhecido = (
-            melhor_usuario is not None
-            and maior_similaridade >= LIMIAR_RECONHECIMENTO
+        print(
+            "[RECONHECIMENTO] Rosto não reconhecido "
+            "pelo KAIRÓS."
         )
 
         return {
             "sucesso": True,
-            "reconhecido": reconhecido,
-            "usuario": {
-                "id": melhor_usuario.get("id"),
-                "nome": melhor_usuario.get("nome")
-            } if reconhecido else None,
-            "similaridade": round(
-                maior_similaridade,
-                4
+            "reconhecido": False,
+            "usuario": None,
+            "similaridade": resposta_sofia.get(
+                "similaridade"
+            ),
+            "maiorSimilaridade": resposta_sofia.get(
+                "similaridade"
+            ),
+            "token": None,
+            "erro": resposta_sofia.get(
+                "erro",
+                "Rosto não reconhecido."
             )
+        }
+
+    except requests.HTTPError as e:
+        resposta = e.response
+
+        if resposta is not None:
+            try:
+                dados_erro = resposta.json()
+            except Exception:
+                dados_erro = {
+                    "erro": resposta.text
+                }
+
+            print(
+                "[RECONHECIMENTO] KAIRÓS respondeu:",
+                resposta.status_code,
+                dados_erro
+            )
+
+            return {
+                "sucesso": True,
+                "reconhecido": False,
+                "usuario": None,
+                "token": None,
+                "erro": dados_erro.get(
+                    "erro",
+                    "Rosto não reconhecido."
+                ),
+                "similaridade": dados_erro.get(
+                    "similaridade"
+                )
+            }
+
+        return {
+            "sucesso": False,
+            "reconhecido": False,
+            "usuario": None,
+            "token": None,
+            "erro": str(e)
         }
 
     except Exception as e:
         print(
-            "ERRO NO RECONHECIMENTO FACIAL:",
+            "[ERRO RECONHECER]",
             e
         )
 
         return {
             "sucesso": False,
+            "reconhecido": False,
+            "usuario": None,
+            "token": None,
             "erro": str(e)
         }
+
+# ============================================================
+# ROTA DE PACIENTES DO KAIRÓS
+# ============================================================
+
+@app.get("/pacientes")
+def obter_pacientes(
+    usuario_id: str = "",
+    request: Request = None
+):
+    """
+    Consulta os pacientes no backend central do Render.
+    """
+    try:
+        url = "https://sitekairos.onrender.com/api/pacientes"
+
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        # Captura o token enviado pelo front-end (pacientes.js)
+        authorization = request.headers.get("Authorization", "") if request else ""
+        
+        if authorization:
+            headers["Authorization"] = authorization
+
+        print(f"[SERVER] Requisitando pacientes no Render | ID Operador: '{usuario_id}'")
+
+        resposta = requests.get(
+            url,
+            params={"usuario_id": usuario_id} if usuario_id else {},
+            headers=headers,
+            timeout=10
+        )
+
+        print(f"[SERVER] Status HTTP Central: {resposta.status_code}")
+
+        if resposta.ok:
+            dados = resposta.json()
+            pacientes = dados if isinstance(dados, list) else dados.get("pacientes", [])
+            print(f"[SERVER] Pacientes retornados: {len(pacientes)}")
+
+            if not usuario_id:
+                return pacientes
+
+            # Filtro local de segurança
+            filtrados = [
+                p for p in pacientes
+                if str(p.get("usuario_id") or p.get("usuarioId") or p.get("user_id") or "") == str(usuario_id)
+            ]
+
+            return filtrados if len(filtrados) > 0 else pacientes
+
+        print(f"[SERVER] Erro na API Central ({resposta.status_code}): {resposta.text}")
+        return []
+
+    except Exception as e:
+        print(f"[SERVER] Exceção ao buscar pacientes: {e}")
+        return []
 
 
 # ============================================================
@@ -469,6 +575,7 @@ def reconhecer_rosto(dados: dict = Body(...)):
 if __name__ == "__main__":
     import uvicorn
 
+    print("===== INICIANDO SERVIDOR FASTAPI KAIRÓS (PORTA 8000) =====")
     uvicorn.run(
         app,
         host="127.0.0.1",

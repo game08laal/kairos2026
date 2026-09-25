@@ -32,7 +32,10 @@ const URL_SFACE =
 // ============================================================
 
 function atualizarStatus(texto, classe = "aguardando") {
-    if (!status) return;
+
+    if (!status) {
+        return;
+    }
 
     status.innerText = texto;
     status.className = `status ${classe}`;
@@ -40,7 +43,10 @@ function atualizarStatus(texto, classe = "aguardando") {
 
 
 function esperar(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+
+    return new Promise(resolve => {
+        setTimeout(resolve, ms);
+    });
 }
 
 
@@ -64,7 +70,6 @@ async function iniciarCamera() {
                 },
 
                 audio: false
-
             });
 
         video.srcObject = stream;
@@ -89,7 +94,6 @@ async function iniciarCamera() {
             "Não foi possível acessar a câmera.",
             "erro"
         );
-
     }
 }
 
@@ -221,16 +225,6 @@ function capturarFrame() {
 // ============================================================
 // PREPARAR IMAGEM PARA YUNET
 // ============================================================
-//
-// IMPORTANTE:
-// O modelo 2026may possui entrada dinâmica.
-// Não vamos mais deformar 640x480 para 320x320.
-//
-// O OpenCV trabalha com a imagem original,
-// BGR, e faz o padding necessário.
-// Aqui fazemos a mesma ideia.
-//
-// ============================================================
 
 function prepararImagemYuNet(canvas) {
 
@@ -321,14 +315,11 @@ async function executarYuNet() {
         return null;
     }
 
-
     const tensor =
         prepararImagemYuNet(canvas);
 
-
     const nomeEntrada =
         sessaoYuNet.inputNames[0];
-
 
     const resultado =
         await sessaoYuNet.run({
@@ -337,7 +328,6 @@ async function executarYuNet() {
                 tensor
 
         });
-
 
     return {
 
@@ -357,22 +347,6 @@ async function executarYuNet() {
 // ============================================================
 // INTERPRETAR YUNET
 // ============================================================
-//
-// Esta parte segue a lógica do OpenCV YuNet.
-//
-// cls e obj já são probabilidades.
-// NÃO usamos sigmoid.
-//
-// Score:
-// sqrt(cls * obj)
-//
-// Bounding box:
-// cx = (coluna + bbox[0]) * stride
-// cy = (linha + bbox[1]) * stride
-// w  = exp(bbox[2]) * stride
-// h  = exp(bbox[3]) * stride
-//
-// ============================================================
 
 function interpretarYuNet(resultado) {
 
@@ -385,9 +359,7 @@ function interpretarYuNet(resultado) {
     const altura =
         resultado.alturaImagem;
 
-
     const deteccoes = [];
-
 
     const strides = [
         8,
@@ -440,21 +412,15 @@ function interpretarYuNet(resultado) {
             saidas[nomeKps].data;
 
 
-        // --------------------------------------------------------
-        // O modelo atual recebe a imagem original.
-        // --------------------------------------------------------
-
         const larguraMapa =
             Math.ceil(largura / stride);
 
         const alturaMapa =
             Math.ceil(altura / stride);
 
-
         const quantidadeEsperada =
             larguraMapa *
             alturaMapa;
-
 
         const quantidade =
             Math.min(
@@ -468,11 +434,6 @@ function interpretarYuNet(resultado) {
             i < quantidade;
             i++
         ) {
-
-            // ----------------------------------------------------
-            // IMPORTANTE:
-            // YuNet já fornece probabilidades.
-            // ----------------------------------------------------
 
             let scoreClasse =
                 Number(cls[i]);
@@ -508,10 +469,6 @@ function interpretarYuNet(resultado) {
                 );
 
 
-            // ----------------------------------------------------
-            // Limite de detecção
-            // ----------------------------------------------------
-
             if (
                 confianca < 0.50
             ) {
@@ -522,16 +479,11 @@ function interpretarYuNet(resultado) {
             const coluna =
                 i % larguraMapa;
 
-
             const linha =
                 Math.floor(
                     i / larguraMapa
                 );
 
-
-            // ----------------------------------------------------
-            // Bounding box
-            // ----------------------------------------------------
 
             const centroX =
                 (
@@ -578,7 +530,13 @@ function interpretarYuNet(resultado) {
 
 
             // ----------------------------------------------------
-            // LANDMARKS
+            // 5 LANDMARKS DO YUNET
+            //
+            // 0 = olho direito
+            // 1 = olho esquerdo
+            // 2 = nariz
+            // 3 = canto direito da boca
+            // 4 = canto esquerdo da boca
             // ----------------------------------------------------
 
             const pontos = [];
@@ -624,10 +582,6 @@ function interpretarYuNet(resultado) {
             }
 
 
-            // ----------------------------------------------------
-            // Verificar se o rosto está dentro da imagem
-            // ----------------------------------------------------
-
             if (
                 !Number.isFinite(x) ||
                 !Number.isFinite(y) ||
@@ -659,8 +613,6 @@ function interpretarYuNet(resultado) {
 
     return deteccoes;
 }
-
-
 // ============================================================
 // REMOVER DETECÇÕES DUPLICADAS
 // ============================================================
@@ -698,13 +650,11 @@ function calcularIoU(a, b) {
             direita - esquerda
         );
 
-
     const altura =
         Math.max(
             0,
             baixo - topo
         );
-
 
     const intersecao =
         largura * altura;
@@ -713,7 +663,6 @@ function calcularIoU(a, b) {
     const areaA =
         a.largura *
         a.altura;
-
 
     const areaB =
         b.largura *
@@ -758,7 +707,8 @@ function aplicarNMS(deteccoes) {
         of ordenadas
     ) {
 
-        let sobreposta = false;
+        let sobreposta =
+            false;
 
 
         for (
@@ -773,13 +723,16 @@ function aplicarNMS(deteccoes) {
                 ) > 0.30
             ) {
 
-                sobreposta = true;
+                sobreposta =
+                    true;
+
                 break;
             }
         }
 
 
         if (!sobreposta) {
+
             mantidas.push(
                 deteccao
             );
@@ -838,542 +791,612 @@ function selecionarMelhorRosto(
 
 
 // ============================================================
-// ALINHAMENTO FACIAL
-// ============================================================
-//
-// Implementação equivalente à ideia usada pelo
-// FaceRecognizerSF do OpenCV:
-//
-// 5 landmarks
-//       ↓
-// transformação de similaridade
-//       ↓
-// imagem 112x112
-//
+// CONVERTER DETECÇÃO PARA O FORMATO DA SOFIA
 // ============================================================
 
-function alinharRosto(
-    canvas,
-    rosto
+function converterDeteccaoParaFormatoSofia(deteccao) {
+
+    if (!deteccao) {
+        console.error(
+            "Detecção facial inexistente."
+        );
+
+        return null;
+    }
+
+
+    console.log(
+        "OBJETO COMPLETO DA DETECÇÃO:",
+        deteccao
+    );
+
+    console.log(
+        "CHAVES DA DETECÇÃO:",
+        Object.keys(deteccao)
+    );
+
+    console.log(
+        "VALORES DA DETECÇÃO:",
+        Object.values(deteccao)
+    );
+
+
+    const x =
+        deteccao.x !== undefined
+            ? deteccao.x
+            : (
+                deteccao.bbox
+                    ? deteccao.bbox[0]
+                    : 0
+            );
+
+
+    const y =
+        deteccao.y !== undefined
+            ? deteccao.y
+            : (
+                deteccao.bbox
+                    ? deteccao.bbox[1]
+                    : 0
+            );
+
+
+    const largura =
+        deteccao.largura !== undefined
+            ? deteccao.largura
+            : (
+                deteccao.bbox
+                    ? deteccao.bbox[2]
+                    : 0
+            );
+
+
+    const altura =
+        deteccao.altura !== undefined
+            ? deteccao.altura
+            : (
+                deteccao.bbox
+                    ? deteccao.bbox[3]
+                    : 0
+            );
+
+
+    const confianca =
+        deteccao.confianca !== undefined
+            ? deteccao.confianca
+            : (deteccao.score || 1.0);
+
+
+    /*
+     * Mapeia dinamicamente onde estão os 5 pontos faciais
+     */
+
+    let pontos =
+        deteccao.pontos ||
+        deteccao.pontosFaciais ||
+        deteccao.landmarks ||
+        deteccao.keypoints ||
+        deteccao.kps;
+
+
+    if (!pontos) {
+
+        console.error(
+            "Não encontrei os pontos faciais dentro da detecção."
+        );
+
+        console.error(
+            "Propriedades disponíveis:",
+            Object.keys(deteccao)
+        );
+
+        return null;
+    }
+
+
+    /*
+     * Esperamos 5 pontos:
+     * 0 = olho direito
+     * 1 = olho esquerdo
+     * 2 = nariz
+     * 3 = boca direita
+     * 4 = boca esquerda
+     */
+
+    if (pontos.length < 5) {
+
+        console.error(
+            "Quantidade insuficiente de pontos faciais:",
+            pontos
+        );
+
+        return null;
+    }
+
+
+    const olhoDireito =
+        pontos[0];
+
+    const olhoEsquerdo =
+        pontos[1];
+
+    const nariz =
+        pontos[2];
+
+    const bocaDireita =
+        pontos[3];
+
+    const bocaEsquerda =
+        pontos[4];
+
+
+    return [
+
+        // Caixa do rosto
+        x,
+        y,
+        largura,
+        altura,
+
+        // Confiança
+        confianca,
+
+        // Olho direito
+        olhoDireito.x !== undefined
+            ? olhoDireito.x
+            : olhoDireito[0],
+
+        olhoDireito.y !== undefined
+            ? olhoDireito.y
+            : olhoDireito[1],
+
+        // Olho esquerdo
+        olhoEsquerdo.x !== undefined
+            ? olhoEsquerdo.x
+            : olhoEsquerdo[0],
+
+        olhoEsquerdo.y !== undefined
+            ? olhoEsquerdo.y
+            : olhoEsquerdo[1],
+
+        // Nariz
+        nariz.x !== undefined
+            ? nariz.x
+            : nariz[0],
+
+        nariz.y !== undefined
+            ? nariz.y
+            : nariz[1],
+
+        // Boca direita
+        bocaDireita.x !== undefined
+            ? bocaDireita.x
+            : bocaDireita[0],
+
+        bocaDireita.y !== undefined
+            ? bocaDireita.y
+            : bocaDireita[1],
+
+        // Boca esquerda
+        bocaEsquerda.x !== undefined
+            ? bocaEsquerda.x
+            : bocaEsquerda[0],
+
+        bocaEsquerda.y !== undefined
+            ? bocaEsquerda.y
+            : bocaEsquerda[1]
+    ];
+}
+// ============================================================
+// CRIAR CANVAS A PARTIR DE IMAGEDATA
+// ============================================================
+
+function criarCanvasImagem(imageData) {
+
+    const canvas =
+        document.createElement("canvas");
+
+    canvas.width =
+        imageData.width;
+
+    canvas.height =
+        imageData.height;
+
+    const contexto =
+        canvas.getContext("2d");
+
+    contexto.putImageData(
+        imageData,
+        0,
+        0
+    );
+
+    return canvas;
+}
+
+
+// ============================================================
+// RECORTE FACIAL
+// ============================================================
+
+function recortarRosto(
+    imageData,
+    deteccao
 ) {
 
-    const pontos =
-        rosto.pontos;
-
-
     if (
-        !pontos ||
-        pontos.length !== 5
+        !deteccao ||
+        deteccao.length < 15
     ) {
 
-        console.error(
-            "Landmarks faciais não encontrados."
+        console.log(
+            "Nenhum rosto encontrado."
         );
 
         return null;
     }
 
 
-    const destino = [
-
-        {
-            x: 38.2946,
-            y: 51.6963
-        },
-
-        {
-            x: 73.5318,
-            y: 51.5014
-        },
-
-        {
-            x: 56.0252,
-            y: 71.7366
-        },
-
-        {
-            x: 41.5493,
-            y: 92.3655
-        },
-
-        {
-            x: 70.7299,
-            y: 92.2041
-        }
-
-    ];
-
-
-    // --------------------------------------------------------
-    // Médias
-    // --------------------------------------------------------
-
-    let srcMeanX = 0;
-    let srcMeanY = 0;
-
-    let dstMeanX = 0;
-    let dstMeanY = 0;
-
-
-    for (
-        let i = 0;
-        i < 5;
-        i++
-    ) {
-
-        srcMeanX +=
-            pontos[i].x;
-
-        srcMeanY +=
-            pontos[i].y;
-
-        dstMeanX +=
-            destino[i].x;
-
-        dstMeanY +=
-            destino[i].y;
-    }
-
-
-    srcMeanX /= 5;
-    srcMeanY /= 5;
-
-    dstMeanX /= 5;
-    dstMeanY /= 5;
-
-
-    // --------------------------------------------------------
-    // Coordenadas centralizadas
-    // --------------------------------------------------------
-
-    const src = [];
-    const dst = [];
-
-
-    for (
-        let i = 0;
-        i < 5;
-        i++
-    ) {
-
-        src.push({
-
-            x:
-                pontos[i].x -
-                srcMeanX,
-
-            y:
-                pontos[i].y -
-                srcMeanY
-
-        });
-
-
-        dst.push({
-
-            x:
-                destino[i].x -
-                dstMeanX,
-
-            y:
-                destino[i].y -
-                dstMeanY
-
-        });
-    }
-
-
-    // --------------------------------------------------------
-    // Matriz de covariância 2x2
-    // --------------------------------------------------------
-
-    let A00 = 0;
-    let A01 = 0;
-    let A10 = 0;
-    let A11 = 0;
-
-
-    for (
-        let i = 0;
-        i < 5;
-        i++
-    ) {
-
-        A00 +=
-            dst[i].x *
-            src[i].x;
-
-        A01 +=
-            dst[i].x *
-            src[i].y;
-
-        A10 +=
-            dst[i].y *
-            src[i].x;
-
-        A11 +=
-            dst[i].y *
-            src[i].y;
-    }
-
-
-    A00 /= 5;
-    A01 /= 5;
-    A10 /= 5;
-    A11 /= 5;
-
-
-    // --------------------------------------------------------
-    // Para manter o código compatível com navegador,
-    // calculamos a transformação de similaridade diretamente.
-    // --------------------------------------------------------
-
-    const varSrc =
-        src.reduce(
-            (s, p) =>
-                s +
-                p.x * p.x +
-                p.y * p.y,
-            0
-        ) / 5;
-
-
-    if (
-        varSrc < 1e-8
-    ) {
-
-        console.error(
-            "Landmarks muito próximos."
-        );
-
-        return null;
-    }
-
-
-    const trace =
-        A00 + A11;
-
-
-    const diff =
-        A01 - A10;
-
-
-    const escalaRotacao =
-        Math.sqrt(
-            trace * trace +
-            diff * diff
+    const canvasOrigem =
+        criarCanvasImagem(
+            imageData
         );
 
 
-    if (
-        escalaRotacao < 1e-8
-    ) {
-
-        console.error(
-            "Não foi possível calcular a rotação facial."
-        );
-
-        return null;
-    }
-
-
-    const cos =
-        trace /
-        escalaRotacao;
-
-
-    const sin =
-        diff /
-        escalaRotacao;
-
-
-    const escala =
-        escalaRotacao /
-        varSrc;
-
-
-    const m00 =
-        escala * cos;
-
-
-    const m01 =
-        escala * sin;
-
-
-    const m10 =
-        -escala * sin;
-
-
-    const m11 =
-        escala * cos;
-
-
-    // --------------------------------------------------------
-    // Translação
-    // --------------------------------------------------------
-
-    const tx =
-        dstMeanX -
-        (
-            m00 * srcMeanX +
-            m01 * srcMeanY
+    const x =
+        Math.max(
+            0,
+            Math.floor(
+                deteccao[0]
+            )
         );
 
 
-    const ty =
-        dstMeanY -
-        (
-            m10 * srcMeanX +
-            m11 * srcMeanY
+    const y =
+        Math.max(
+            0,
+            Math.floor(
+                deteccao[1]
+            )
         );
 
 
-    // --------------------------------------------------------
-    // Criar imagem 112x112
-    // --------------------------------------------------------
+    const largura =
+        Math.floor(
+            deteccao[2]
+        );
 
-    const canvasRosto =
+
+    const altura =
+        Math.floor(
+            deteccao[3]
+        );
+
+
+    const olhoDireito = {
+
+        x:
+            deteccao[5],
+
+        y:
+            deteccao[6]
+
+    };
+
+
+    const olhoEsquerdo = {
+
+        x:
+            deteccao[7],
+
+        y:
+            deteccao[8]
+
+    };
+
+
+    const nariz = {
+
+        x:
+            deteccao[9],
+
+        y:
+            deteccao[10]
+
+    };
+
+
+    const margemX =
+        largura * 0.25;
+
+
+    const margemY =
+        altura * 0.30;
+
+
+    const origemX =
+        Math.max(
+            0,
+            x - margemX
+        );
+
+
+    const origemY =
+        Math.max(
+            0,
+            y - margemY
+        );
+
+
+    const origemLargura =
+        Math.min(
+            imageData.width - origemX,
+            largura + margemX * 2
+        );
+
+
+    const origemAltura =
+        Math.min(
+            imageData.height - origemY,
+            altura + margemY * 2
+        );
+
+
+    const canvasRecorte =
         document.createElement(
             "canvas"
         );
 
 
-    canvasRosto.width = 112;
-    canvasRosto.height = 112;
+    canvasRecorte.width =
+        112;
+
+    canvasRecorte.height =
+        112;
 
 
     const contexto =
-        canvasRosto.getContext(
-            "2d",
-            {
-                willReadFrequently: true
-            }
+        canvasRecorte.getContext(
+            "2d"
         );
 
 
-    // --------------------------------------------------------
-    // Canvas usa transformação inversa.
-    // --------------------------------------------------------
+    contexto.drawImage(
 
-    const determinante =
-        m00 * m11 -
-        m01 * m10;
+        canvasOrigem,
+
+        origemX,
+        origemY,
+        origemLargura,
+        origemAltura,
+
+        0,
+        0,
+        112,
+        112
+    );
 
 
-    if (
-        Math.abs(
-            determinante
-        ) < 1e-10
-    ) {
+    const escalaX =
+        112 /
+        origemLargura;
 
-        console.error(
-            "Transformação facial inválida."
+
+    const escalaY =
+        112 /
+        origemAltura;
+
+
+    const olhoDireitoLocal = {
+
+        x:
+            (
+                olhoDireito.x -
+                origemX
+            ) *
+            escalaX,
+
+        y:
+            (
+                olhoDireito.y -
+                origemY
+            ) *
+            escalaY
+    };
+
+
+    const olhoEsquerdoLocal = {
+
+        x:
+            (
+                olhoEsquerdo.x -
+                origemX
+            ) *
+            escalaX,
+
+        y:
+            (
+                olhoEsquerdo.y -
+                origemY
+            ) *
+            escalaY
+    };
+
+
+    const narizLocal = {
+
+        x:
+            (
+                nariz.x -
+                origemX
+            ) *
+            escalaX,
+
+        y:
+            (
+                nariz.y -
+                origemY
+            ) *
+            escalaY
+    };
+
+
+    const dx =
+        olhoEsquerdoLocal.x -
+        olhoDireitoLocal.x;
+
+
+    const dy =
+        olhoEsquerdoLocal.y -
+        olhoDireitoLocal.y;
+
+
+    const angulo =
+        Math.atan2(
+            dy,
+            dx
         );
 
-        return null;
-    }
+
+    const centroX =
+        56;
 
 
-    const inv00 =
-        m11 /
-        determinante;
+    const centroY =
+        56;
 
 
-    const inv01 =
-        -m01 /
-        determinante;
+    contexto.clearRect(
+        0,
+        0,
+        112,
+        112
+    );
 
 
-    const inv10 =
-        -m10 /
-        determinante;
+    contexto.save();
 
 
-    const inv11 =
-        m00 /
-        determinante;
+    contexto.translate(
+        centroX,
+        centroY
+    );
 
 
-    const invTx =
-        -(
-            inv00 * tx +
-            inv01 * ty
-        );
+    contexto.rotate(
+        -angulo
+    );
 
 
-    const invTy =
-        -(
-            inv10 * tx +
-            inv11 * ty
-        );
-
-
-    contexto.setTransform(
-        inv00,
-        inv10,
-        inv01,
-        inv11,
-        invTx,
-        invTy
+    contexto.translate(
+        -centroX,
+        -centroY
     );
 
 
     contexto.drawImage(
-        canvas,
+
+        canvasOrigem,
+
+        origemX,
+        origemY,
+        origemLargura,
+        origemAltura,
+
         0,
-        0
+        0,
+        112,
+        112
     );
 
 
-    contexto.setTransform(
-        1,
-        0,
-        0,
-        1,
-        0,
-        0
-    );
+    contexto.restore();
 
 
-    return canvasRosto;
+    const resultado =
+        contexto.getImageData(
+            0,
+            0,
+            112,
+            112
+        );
+
+
+    return resultado;
 }
 
 
 // ============================================================
 // PREPARAR IMAGEM PARA SFACE
 // ============================================================
-//
-// O FaceRecognizerSF oficial usa 112x112,
-// sem normalização 0-1,
-// sem subtração de média,
-// com troca RGB/BGR.
-//
-// ============================================================
 
 function prepararImagemSFace(
-    canvasRosto
+    imageData
 ) {
 
-    const tamanho = 112;
-
-
-    const contexto =
-        canvasRosto.getContext(
-            "2d",
-            {
-                willReadFrequently: true
-            }
-        );
-
-
-    const imagem =
-        contexto.getImageData(
-            0,
-            0,
-            tamanho,
-            tamanho
-        );
-
-
-    const quantidadePixels =
-        tamanho * tamanho;
-
-
     const dados =
+        imageData.data;
+
+
+    const tamanho =
+        112 * 112;
+
+
+    const tensorData =
         new Float32Array(
-            3 *
-            quantidadePixels
+            3 * tamanho
         );
+
+
+    let indiceR =
+        0;
+
+    let indiceG =
+        tamanho;
+
+    let indiceB =
+        tamanho * 2;
 
 
     for (
-        let y = 0;
-        y < tamanho;
-        y++
+        let i = 0;
+        i < dados.length;
+        i += 4
     ) {
 
-        for (
-            let x = 0;
-            x < tamanho;
-            x++
-        ) {
+        tensorData[indiceR++] =
+            dados[i];
 
-            const pixel =
-                (
-                    y *
-                    tamanho +
-                    x
-                ) * 4;
+        tensorData[indiceG++] =
+            dados[i + 1];
 
-
-            const posicao =
-                y *
-                tamanho +
-                x;
-
-
-            // ------------------------------------------------
-            // O canvas está em RGB.
-            // O blob oficial do OpenCV usa swapRB=true.
-            // Portanto alimentamos BGR para obter o mesmo
-            // resultado efetivo.
-            // ------------------------------------------------
-
-            const R =
-                imagem.data[
-                    pixel
-                ];
-
-            const G =
-                imagem.data[
-                    pixel + 1
-                ];
-
-            const B =
-                imagem.data[
-                    pixel + 2
-                ];
-
-
-            dados[
-                posicao
-            ] = B;
-
-
-            dados[
-                quantidadePixels +
-                posicao
-            ] = G;
-
-
-            dados[
-                2 *
-                quantidadePixels +
-                posicao
-            ] = R;
-        }
+        tensorData[indiceB++] =
+            dados[i + 2];
     }
 
 
     return new ort.Tensor(
+
         "float32",
-        dados,
+
+        tensorData,
+
         [
             1,
             3,
-            tamanho,
-            tamanho
+            112,
+            112
         ]
     );
 }
 
 
 // ============================================================
-// GERAR BIOMETRIA
+// GERAR BIOMETRIA SFACE
 // ============================================================
 
 async function gerarBiometriaSFace(
-    canvasRosto
+    imageData
 ) {
 
     console.log(
@@ -1383,16 +1406,12 @@ async function gerarBiometriaSFace(
 
     const tensor =
         prepararImagemSFace(
-            canvasRosto
+            imageData
         );
 
 
     const nomeEntrada =
         sessaoSFace.inputNames[0];
-
-
-    const nomeSaida =
-        sessaoSFace.outputNames[0];
 
 
     console.log(
@@ -1407,6 +1426,10 @@ async function gerarBiometriaSFace(
                 tensor
 
         });
+
+
+    const nomeSaida =
+        sessaoSFace.outputNames[0];
 
 
     const embedding =
@@ -1440,8 +1463,6 @@ async function gerarBiometriaSFace(
         embedding
     );
 }
-
-
 // ============================================================
 // ENVIAR PARA FASTAPI
 // ============================================================
@@ -1462,13 +1483,18 @@ async function enviarParaReconhecimento(
                 method: "POST",
 
                 headers: {
+
                     "Content-Type":
                         "application/json"
+
                 },
 
                 body:
                     JSON.stringify({
-                        embedding
+
+                        embedding:
+                            embedding
+
                     })
             }
         );
@@ -1508,7 +1534,8 @@ async function enviarParaReconhecimento(
 
 function mostrarOperador(
     usuario,
-    similaridade
+    similaridade,
+    token
 ) {
 
     reconhecimentoConcluido =
@@ -1567,10 +1594,7 @@ function mostrarOperador(
     }
 
 
-    // --------------------------------------------------------
-    // Guardar operador para pacientes.html
-    // --------------------------------------------------------
-
+    // Salva os dados do operador reconhecido
     sessionStorage.setItem(
         "kairosOperador",
         JSON.stringify({
@@ -1585,16 +1609,32 @@ function mostrarOperador(
     );
 
 
-    // Compatibilidade com código antigo
+    // Salva o JWT REAL recebido da autenticação facial
+    if (token) {
+
+        sessionStorage.setItem(
+            "kairosToken",
+            token
+        );
+
+        console.log(
+            "JWT da autenticação facial armazenado com sucesso."
+        );
+
+    } else {
+
+        console.error(
+            "ERRO: autenticação reconheceu o usuário, mas não recebeu JWT."
+        );
+    }
+
+
+    // Mantém compatibilidade com o restante do sistema
     sessionStorage.setItem(
         "operador",
         usuario.nome
     );
 
-
-    // --------------------------------------------------------
-    // Botão continuar
-    // --------------------------------------------------------
 
     if (btnContinuar) {
 
@@ -1605,6 +1645,7 @@ function mostrarOperador(
         btnContinuar.innerText =
             "Continuar";
 
+
         btnContinuar.onclick =
             () => {
 
@@ -1614,10 +1655,6 @@ function mostrarOperador(
             };
     }
 
-
-    // --------------------------------------------------------
-    // Avançar automaticamente
-    // --------------------------------------------------------
 
     setTimeout(
         () => {
@@ -1649,6 +1686,7 @@ async function processarRosto(
         processando ||
         reconhecimentoConcluido
     ) {
+
         return;
     }
 
@@ -1664,89 +1702,89 @@ async function processarRosto(
         );
 
 
-        // ----------------------------------------------------
-        // Converter coordenadas
-        // ----------------------------------------------------
-
-        const rosto = {
-
-            x:
-                rostoDetectado.x,
-
-            y:
-                rostoDetectado.y,
-
-            largura:
-                rostoDetectado.largura,
-
-            altura:
-                rostoDetectado.altura,
-
-            confianca:
-                rostoDetectado.confianca,
-
-            pontos:
-                rostoDetectado.pontos.map(
-                    ponto => ({
-                        x:
-                            ponto.x,
-
-                        y:
-                            ponto.y
-                    })
-                )
-        };
-
-
-        console.log(
-            "ROSTO ESCOLHIDO:",
-            rosto
-        );
-
-
-        console.log(
-            "LANDMARKS:",
-            rosto.pontos
-        );
-
-
-        // ----------------------------------------------------
-        // Alinhamento
-        // ----------------------------------------------------
-
-        const canvasRosto =
-            alinharRosto(
-                resultadoYuNet.canvas,
-                rosto
+        const deteccaoSofia =
+            converterDeteccaoParaFormatoSofia(
+                rostoDetectado
             );
 
 
-        if (!canvasRosto) {
+        if (
+            !deteccaoSofia
+        ) {
 
             throw new Error(
-                "Não foi possível alinhar o rosto."
+                "Não foi possível converter a detecção facial."
+            );
+        }
+
+
+        console.log(
+            "DETECÇÃO NO FORMATO DA SOFIA:",
+            deteccaoSofia
+        );
+
+
+        // ----------------------------------------------------
+        // Obter ImageData original
+        // ----------------------------------------------------
+
+        const contexto =
+            resultadoYuNet.canvas.getContext(
+                "2d",
+                {
+                    willReadFrequently: true
+                }
+            );
+
+
+        const imageData =
+            contexto.getImageData(
+                0,
+                0,
+                resultadoYuNet.canvas.width,
+                resultadoYuNet.canvas.height
+            );
+
+
+        // ----------------------------------------------------
+        // RECORTE EXATO DO CADASTRO DA SOFIA
+        // ----------------------------------------------------
+
+        const rostoRecortado =
+            recortarRosto(
+                imageData,
+                deteccaoSofia
+            );
+
+
+        if (
+            !rostoRecortado
+        ) {
+
+            throw new Error(
+                "Não foi possível recortar o rosto."
             );
         }
 
 
         // ----------------------------------------------------
-        // SFace
+        // SFACE
         // ----------------------------------------------------
 
         const embedding =
             await gerarBiometriaSFace(
-                canvasRosto
+                rostoRecortado
             );
 
 
         console.log(
-            "EMBEDDING COM 128 VALORES:",
+            "EMBEDDING SFACE - 128 VALORES:",
             embedding
         );
 
 
         // ----------------------------------------------------
-        // Backend
+        // BACKEND
         // ----------------------------------------------------
 
         const resultado =
@@ -1757,38 +1795,47 @@ async function processarRosto(
 
         if (
             resultado &&
-            resultado.sucesso &&
-            resultado.reconhecido &&
             resultado.usuario
         ) {
 
             mostrarOperador(
                 resultado.usuario,
-                resultado.similaridade
+                resultado.similaridade ||
+                resultado.maiorSimilaridade,
+                resultado.token
             );
 
         } else {
 
             console.log(
-                "ROSTO NÃO RECONHECIDO."
-            );
-
-
-            console.log(
-                "Similaridade:",
+                "RESPOSTA DA AUTENTICAÇÃO:",
                 resultado
-                    ? resultado.similaridade
-                    : "sem resposta"
             );
 
 
-            atualizarStatus(
+            if (
                 resultado &&
-                resultado.erro
-                    ? "Erro na comunicação com o servidor."
-                    : "Rosto detectado, mas não identificado.",
-                "erro"
-            );
+                resultado.maiorSimilaridade !== undefined
+            ) {
+
+                atualizarStatus(
+
+                    `Biometria comparada. Similaridade: ${resultado.maiorSimilaridade}`,
+
+                    "aguardando"
+
+                );
+
+            } else {
+
+                atualizarStatus(
+
+                    "Biometria enviada para comparação.",
+
+                    "aguardando"
+
+                );
+            }
         }
 
 
@@ -1811,8 +1858,6 @@ async function processarRosto(
             false;
     }
 }
-
-
 // ============================================================
 // DETECÇÃO CONTÍNUA
 // ============================================================
@@ -1840,10 +1885,6 @@ async function iniciarDeteccao() {
 
         try {
 
-            // ------------------------------------------------
-            // Evitar chamadas excessivas
-            // ------------------------------------------------
-
             const agora =
                 Date.now();
 
@@ -1864,10 +1905,6 @@ async function iniciarDeteccao() {
                 agora;
 
 
-            // ------------------------------------------------
-            // Uma única execução do YuNet
-            // ------------------------------------------------
-
             const resultado =
                 await executarYuNet();
 
@@ -1879,10 +1916,6 @@ async function iniciarDeteccao() {
                 continue;
             }
 
-
-            // ------------------------------------------------
-            // Interpretar
-            // ------------------------------------------------
 
             const deteccoes =
                 interpretarYuNet(
@@ -1931,6 +1964,7 @@ async function iniciarDeteccao() {
                 erro
             );
 
+
             atualizarStatus(
                 "Erro na detecção facial.",
                 "erro"
@@ -1970,7 +2004,6 @@ async function iniciarReconhecimento() {
             "ERRO NA INICIALIZAÇÃO:",
             erro
         );
-
     }
 }
 
